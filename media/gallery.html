@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gallery — Girls Viral</title>
+<style>
+  :root{ --bg:#0f0f10; --card:#111; --accent:#ff4da6; --muted:#bbb;}
+  body{ margin:0; font-family:system-ui,Arial; background:var(--bg); color:#fff; }
+  header{ padding:18px; text-align:center; background:linear-gradient(90deg,#ff66b3,#ff3380); font-weight:700; font-size:20px;}
+  .topbar{ display:flex; gap:12px; justify-content:center; padding:12px; }
+  .btn{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:10px; text-decoration:none;}
+  .wrap{ max-width:980px; margin:18px auto; padding:10px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .card{ background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 6px 30px rgba(0,0,0,0.4); }
+  .thumb{ width:100%; height:220px; object-fit:cover; display:block; background:#222; }
+  .meta{ padding:8px; font-size:13px; color:var(--muted); text-align:center; }
+  .videoThumb{ width:100%; height:220px; display:flex; align-items:center; justify-content:center; background:#000; color:#fff; font-weight:700;}
+  .playerFull{ position:fixed; inset:0; display:none; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999; }
+  .playerFull video{ max-width:95%; max-height:95%; border-radius:8px; }
+  .closeBtn{ position:absolute; right:18px; top:18px; background:#fff1; color:#fff; padding:8px 10px; border-radius:10px; border:none; }
+  @media (max-width:420px){ .thumb{ height:160px } .videoThumb{ height:160px } }
+</style>
+</head>
+<body>
+<header>Girls Viral Hub — Gallery</header>
+<div class="topbar">
+  <a class="btn" href="index.html">Home</a>
+  <a class="btn" href="gallery.html">Photos & Reels</a>
+</div>
+
+<div class="wrap">
+  <div id="status" style="text-align:center;color:#ddd;margin-bottom:12px;">Loading gallery…</div>
+  <div id="grid" class="grid"></div>
+</div>
+
+<!-- full-screen player -->
+<div id="player" class="playerFull">
+  <button id="close" class="closeBtn">CLOSE</button>
+  <video id="v" controls playsinline></video>
+</div>
+
+<script>
+/*
+  IMPORTANT:
+  Replace below with your GitHub username AND repository name.
+  Example:
+    const USER = "adivtiya";
+    const REPO = "girls-viral-world";
+*/
+const USER = "REPLACE_USERNAME";
+const REPO = "REPLACE_REPO";
+
+const MEDIA_FOLDER = "media";
+const apiUrl = `https://api.github.com/repos/${USER}/${REPO}/contents/${MEDIA_FOLDER}`;
+
+const grid = document.getElementById('grid');
+const status = document.getElementById('status');
+
+async function loadMedia(){
+  status.innerText = 'Fetching media...';
+  try{
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error('Could not load media. Make sure MEDIA folder exists and repo is public.');
+    const files = await res.json();
+
+    const media = files.filter(f =>
+      /\.(jpe?g|png|webp|gif)$/i.test(f.name) ||
+      /\.(mp4|webm|mov)$/i.test(f.name)
+    );
+
+    if (media.length === 0) {
+      status.innerText = 'No media yet. Upload photos or 15-sec videos to /media folder.';
+      return;
+    }
+
+    status.style.display = 'none';
+
+    media.forEach(mkCard);
+
+  }catch(err){
+    status.innerText = 'Error loading gallery — check username/repo.';
+    console.error(err);
+  }
+}
+
+function mkCard(file){
+  const url = file.download_url;
+  const name = file.name.toLowerCase();
+
+  const card = document.createElement('div');
+  card.className='card';
+
+  if (/\.(mp4|webm|mov)$/i.test(name)){
+    const vbox = document.createElement('div');
+    vbox.className='videoThumb';
+    vbox.innerText = '▶ VIDEO';
+    card.appendChild(vbox);
+
+    const meta = document.createElement('div');
+    meta.className='meta';
+    meta.innerText = name;
+    card.appendChild(meta);
+
+    vbox.addEventListener('click', ()=> openPlayer(url));
+  }
+  else {
+    const img = document.createElement('img');
+    img.className='thumb';
+    img.src = url;
+    img.loading='lazy';
+    card.appendChild(img);
+
+    const meta = document.createElement('div');
+    meta.className='meta';
+    meta.innerText = name;
+    card.appendChild(meta);
+
+    img.addEventListener('click', ()=> openPreview(url));
+  }
+
+  grid.appendChild(card);
+}
+
+function openPlayer(src){
+  const player = document.getElementById('player');
+  const v = document.getElementById('v');
+  v.src = src;
+  player.style.display = 'flex';
+  v.play().catch(()=>{});
+}
+
+function openPreview(src){
+  openPlayer(src);
+}
+
+document.getElementById('close').addEventListener('click', ()=>{
+  const player = document.getElementById('player');
+  const v = document.getElementById('v');
+  v.pause();
+  v.src = '';
+  player.style.display = 'none';
+});
+
+loadMedia();
+</script>
+</body>
+</html>
