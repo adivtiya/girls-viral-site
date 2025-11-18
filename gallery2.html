@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Gallery</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: white; text-align: center; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+        img, video { width: 100%; border-radius: 10px; }
+        .item { background: #222; padding: 10px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>🔥 Exclusive Private Gallery 🔥</h2>
+
+<div id="gallery" class="grid"></div>
+
+<script>
+async function loadGallery() {
+    const res = await fetch("gallery.json");
+    const data = await res.json();
+    const box = document.getElementById("gallery");
+
+    data.media.forEach(item => {
+        let html = "";
+
+        if (item.type === "image") {
+            html = `<div class='item'><img src="media/${item.file}" /></div>`;
+        } else if (item.type === "video") {
+            html = `<div class='item'><video controls src="media/${item.file}"></video></div>`;
+        }
+
+        box.innerHTML += html;
+    });
+}
+
+loadGallery();
+</script>
+
+</body>
+</html>
