@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Auto Gallery — Girls Viral</title>
+<style>
+  :root{ --bg:#0f0f10; --card:#111; --accent:#ff4da6; --muted:#bbb;}
+  body{ margin:0; font-family:system-ui,Arial; background:var(--bg); color:#fff; -webkit-font-smoothing:antialiased;}
+  header{ padding:16px; text-align:center; background:linear-gradient(90deg,#ff66b3,#ff3380); font-weight:700; font-size:18px;}
+  .wrap{ max-width:980px; margin:12px auto; padding:10px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .card{ background:var(--card); border-radius:10px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.45); }
+  .thumb{ width:100%; height:180px; object-fit:cover; display:block; background:#222; }
+  .videoThumb{ width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:#000; color:#fff; font-weight:700; }
+  .meta{ padding:8px; font-size:12px; color:var(--muted); text-align:center; }
+  .playerFull{ position:fixed; inset:0; display:none; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999; }
+  .playerFull video, .playerFull img{ max-width:95%; max-height:95%; border-radius:8px; }
+  .closeBtn{ position:absolute; right:10px; top:10px; background:#ffffff22; color:#fff; padding:8px 10px; border-radius:10px; border:none; }
+  @media (max-width:420px){ .thumb{ height:140px } .videoThumb{ height:140px } }
+</style>
+</head>
+<body>
+<header>Girls Viral — Gallery (Auto)</header>
+<div class="wrap">
+  <div style="text-align:center;margin:10px 0;color:#ffd1e8">Auto-loading from <code>/media</code> — upload files there to show instantly.</div>
+  <div id="status" style="text-align:center;color:#ddd;margin-bottom:8px">Loading gallery…</div>
+  <div id="grid" class="grid" aria-live="polite"></div>
+</div>
+
+<!-- player -->
+<div id="player" class="playerFull" role="dialog" aria-modal="true">
+  <button id="close" class="closeBtn">CLOSE</button>
+  <video id="v" controls playsinline></video>
+</div>
+
+<script>
+/*
+  This file auto-loads contents of your repo's /media folder.
+  It uses the public GitHub API so your repo must be public.
+  Username and repo are already prefilled for you (adivtiya / girls-viral-site).
+  If your repo name or username is different, change USER/REPO below.
+*/
+const USER = "adivtiya";
+const REPO = "girls-viral-site";
+const MEDIA_FOLDER = "media";
+const apiUrl = `https://api.github.com/repos/${USER}/${REPO}/contents/${MEDIA_FOLDER}`;
+
+const grid = document.getElementById('grid');
+const status = document.getElementById('status');
+const player = document.getElementById('player');
+const videoEl = document.getElementById('v');
+
+async function loadMedia() {
+  status.innerText = 'Fetching media from repo...';
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) {
+      status.innerText = 'Could not load media — check that repo is public and /media exists.';
+      console.error('GitHub API error', res.status, res.statusText);
+      return;
+    }
+    const files = await res.json();
+    const media = files.filter(f => /\.(jpe?g|png|webp|gif|svg)$/i.test(f.name) || /\.(mp4|webm|mov)$/i.test(f.name));
+    if (media.length === 0) {
+      status.innerText = 'No files in /media. Upload images or short videos to the media folder.';
+      return;
+    }
+    status.style.display = 'none';
+    // newest first
+    media.sort((a,b)=> (b.sha||'').localeCompare(a.sha||''));
+    media.forEach(f => addCard(f));
+  } catch (err) {
+    status.innerText = 'Error loading gallery.';
+    console.error(err);
+  }
+}
+
+function addCard(file) {
+  const url = file.download_url;
+  const name = file.name.toLowerCase();
+  const card = document.createElement('div'); card.className = 'card';
+  if (/\.(mp4|webm|mov)$/i.test(name)) {
+    const vbox = document.createElement('div'); vbox.className = 'videoThumb'; vbox.innerText = '▶ VIDEO';
+    card.appendChild(vbox);
+    const meta = document.createElement('div'); meta.className='meta'; meta.innerText = file.name;
+    card.appendChild(meta);
+    vbox.addEventListener('click', ()=> openPlayer(url));
+  } else {
+    const img = document.createElement('img'); img.className='thumb'; img.src = url; img.loading = 'lazy';
+    card.appendChild(img);
+    const meta = document.createElement('div'); meta.className='meta'; meta.innerText = file.name;
+    card.appendChild(meta);
+    img.addEventListener('click', ()=> openPlayer(url));
+  }
+  grid.appendChild(card);
+}
+
+function openPlayer(src){
+  player.style.display = 'flex';
+  // if video file extension -> set video src, else show image with video tag fallback
+  if (/\.(mp4|webm|mov)$/i.test(src)) {
+    videoEl.src = src;
+    videoEl.style.display = 'block';
+    videoEl.play().catch(()=>{});
+  } else {
+    // show image in video element by changing tag to <img> dynamically
+    const existingImg = document.querySelector('.playerFull img');
+    if (existingImg) existingImg.remove();
+    const img = document.createElement('img'); img.src = src;
+    player.appendChild(img);
+    videoEl.pause(); videoEl.src = '';
+  }
+  window.setTimeout(()=>window.scrollTo(0,0),50);
+}
+
+document.getElementById('close').addEventListener('click', ()=>{
+  videoEl.pause(); videoEl.src = ''; player.style.display = 'none';
+});
+
+loadMedia();
+</script>
+</body>
+</html>
