@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gallery — Girls Viral</title>
+<meta name="description" content="Exclusive aesthetic photos & short reels — safe, face-hidden, influencer-style gallery." />
+<style>
+  :root{ --bg:#0f0f10; --card:#111; --accent:#ff4da6; --muted:#bbb; --glass:rgba(255,255,255,0.04); }
+  body{ margin:0; font-family:system-ui,Arial; background:var(--bg); color:#fff; -webkit-font-smoothing:antialiased;}
+  header{ padding:18px; text-align:center; background:linear-gradient(90deg,#ff66b3,#ff3380); font-weight:700; font-size:20px;}
+  .topbar{ display:flex; gap:8px; justify-content:center; padding:10px; flex-wrap:wrap;}
+  .btn{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:600;}
+  .wrap{ max-width:980px; margin:14px auto; padding:10px; }
+  .intro{ background:var(--glass); padding:14px; border-radius:12px; text-align:center; color:#ffe6f0; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-top:14px; }
+  .card{ background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.45); }
+  .thumb{ width:100%; height:220px; object-fit:cover; display:block; background:#222; }
+  .meta{ padding:8px; font-size:13px; color:var(--muted); text-align:center; }
+  .videoThumb{ width:100%; height:220px; display:flex; align-items:center; justify-content:center; background:#000; color:#fff; font-weight:700;}
+  .playerFull{ position:fixed; inset:0; display:none; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999; }
+  .playerFull video, .playerFull img{ max-width:95%; max-height:95%; border-radius:8px; }
+  .closeBtn{ position:absolute; right:18px; top:18px; background:#ffffff22; color:#fff; padding:8px 10px; border-radius:10px; border:none; }
+  .footer{ text-align:center; color:#ccc; font-size:13px; margin:18px 0; }
+  .socials{ display:flex; gap:10px; justify-content:center; margin-top:8px; }
+  .ad-slot{ background:#111; color:#999; border:1px dashed #222; padding:12px; border-radius:8px; text-align:center; margin:12px 0;}
+  @media (max-width:420px){ .thumb{ height:160px } .videoThumb{ height:160px } .meta{ font-size:12px } }
+</style>
+</head>
+<body>
+<header>Girls Viral Hub — Gallery</header>
+
+<div class="topbar">
+  <a class="btn" href="index.html">Home</a>
+  <a class="btn" href="gallery.html">Gallery</a>
+  <a class="btn" href="admin-instructions.html">Upload</a>
+</div>
+
+<div class="wrap">
+  <div class="intro">
+    <div style="font-size:18px;font-weight:700">Premium Aesthetic Gallery</div>
+    <div style="font-size:13px;margin-top:6px;color:#ffd1e8">
+      Face-hidden, tasteful, influencer-style photos & short reels (≤15s). Ads-safe — no explicit content.
+    </div>
+    <div class="socials" style="margin-top:10px">
+      <!-- Replace these with your social links in index.html if you want -->
+      <a href="#" style="color:#fff;text-decoration:none;padding:6px 10px;background:#ff4da6;border-radius:8px">Instagram</a>
+      <a href="#" style="color:#fff;text-decoration:none;padding:6px 10px;background:#ff66b3;border-radius:8px">Telegram</a>
+    </div>
+  </div>
+
+  <!-- AD placeholder (top) -->
+  <div class="ad-slot" id="ad-top">AD SLOT (paste ad-network code here)</div>
+
+  <div id="status" style="text-align:center;color:#ddd;margin-top:6px">Loading gallery…</div>
+  <div id="grid" class="grid" aria-live="polite"></div>
+
+  <!-- AD placeholder (in-content) -->
+  <div class="ad-slot" id="ad-mid">AD SLOT (in-content)</div>
+
+  <div class="footer">
+    <div>Want to contact? <a href="mailto:your-email@example.com" style="color:#ff9ccf">Email us</a></div>
+    <div style="margin-top:6px;color:#999;font-size:12px">This page contains safe, non-explicit promotional content only.</div>
+  </div>
+</div>
+
+<!-- full-screen player -->
+<div id="player" class="playerFull" role="dialog" aria-modal="true">
+  <button id="close" class="closeBtn">CLOSE</button>
+  <video id="v" controls playsinline></video>
+</div>
+
+<script>
+/*
+  NOTE: update USER + REPO below to your GitHub username and repo name.
+  Example: const USER="adivtiya"; const REPO="girls-viral-site";
+*/
+const USER = "adivtiya";
+const REPO = "girls-viral-site";
+const MEDIA_FOLDER = "media";
+const apiUrl = `https://api.github.com/repos/${USER}/${REPO}/contents/${MEDIA_FOLDER}`;
+
+const grid = document.getElementById('grid');
+const status = document.getElementById('status');
+
+async function loadMedia(){
+  status.innerText = 'Fetching media...';
+  try{
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error('Could not load media. Ensure repo is public and media folder exists.');
+    const files = await res.json();
+    const media = files.filter(f =>
+      /\.(jpe?g|png|webp|gif)$/i.test(f.name) ||
+      /\.(mp4|webm|mov)$/i.test(f.name)
+    );
+    if (media.length === 0) {
+      status.innerText = 'No media yet. Upload photos or short videos to the /media folder.';
+      return;
+    }
+    status.style.display = 'none';
+    // newest first
+    media.sort((a,b)=> (b.sha||'').localeCompare(a.sha||''));
+    media.forEach(mkCard);
+  }catch(err){
+    status.innerText = 'Error loading gallery — check username/repo & public repo settings.';
+    console.error(err);
+  }
+}
+
+function mkCard(file){
+  const url = file.download_url;
+  const name = file.name.toLowerCase();
+  const card = document.createElement('div'); card.className='card';
+  if (/\.(mp4|webm|mov)$/i.test(name)){
+    const vbox = document.createElement('div'); vbox.className='videoThumb';
+    vbox.innerText = '▶ VIDEO';
+    card.appendChild(vbox);
+    const meta = document.createElement('div'); meta.className='meta'; meta.innerText = name;
+    card.appendChild(meta);
+    vbox.addEventListener('click', ()=> openPlayer(url));
+  } else {
+    const img = document.createElement('img'); img.className='thumb'; img.src = url; img.loading='lazy';
+    card.appendChild(img);
+    const meta = document.createElement('div'); meta.className='meta'; meta.innerText = name;
+    card.appendChild(meta);
+    img.addEventListener('click', ()=> openPreview(url));
+  }
+  grid.appendChild(card);
+}
+
+function openPlayer(src){
+  const player = document.getElementById('player');
+  const v = document.getElementById('v');
+  v.src = src;
+  player.style.display = 'flex';
+  v.play().catch(()=>{});
+}
+function openPreview(src){ openPlayer(src); }
+
+document.getElementById('close').addEventListener('click', ()=>{
+  const player = document.getElementById('player');
+  const v = document.getElementById('v');
+  v.pause(); v.src = ''; player.style.display = 'none';
+});
+
+loadMedia();
+</script>
+</body>
+</html>
